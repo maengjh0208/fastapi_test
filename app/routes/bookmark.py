@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends
+from typing import List
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from app.database.conn import db
 from app.database.schema import BookmarkFolder
-from app.models import BookmarkFolderInfo, NormalResponse
+from app.models import BookmarkFolderInfo, NormalResponse, BookmarkFolders
 
 router = APIRouter(prefix='/bookmark')
 
@@ -26,8 +28,19 @@ async def bookmark_folder(request: Request, folder_info: BookmarkFolderInfo, ses
     return NormalResponse(success=True, message="The bookmark folder has been successfully created")
 
 
-@router.get("/folders", status_code=200)
-async def get_bookmark_folders(request: Request):
+@router.get("/folders", status_code=200, response_model=List[BookmarkFolders])
+async def get_bookmark_folders(
+    request: Request,
+    limit: int = Query(default=100),
+    offset: int = Query(default=0),
+):
     member_no = request.state.user.member_no
+    folders = BookmarkFolder.filter(member_no=member_no, limit=limit, offset=offset).all()
+
+    response = []
+    for folder in folders:
+        response.append(BookmarkFolders(folder_no=folder.folder_no, folder_name=folder.folder_name))
+
+    return response
 
 

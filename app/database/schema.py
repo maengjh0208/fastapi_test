@@ -1,4 +1,3 @@
-
 from sqlalchemy import (
     Column,
     Integer,
@@ -77,11 +76,23 @@ class BaseMixin:
         :param kwargs:
         :return:
         """
+        limit = 100
+        offset = 0
+
         cond = []
         for key, val in kwargs.items():
             key = key.split("__")
             if len(key) > 2:
                 raise Exception("No 2 more dunders")
+
+            if key[0] == "limit":
+                val = min(val, 1)
+                limit = min(limit, val)
+                continue
+            elif key[0] == "offset":
+                offset = max(offset, val)
+                continue
+
             col = getattr(cls, key[0])
             if len(key) == 1: cond.append((col == val))
             elif len(key) == 2 and key[1] == 'gt': cond.append((col > val))
@@ -97,7 +108,7 @@ class BaseMixin:
             obj._session = next(db.session())
             obj.served = False
         query = obj._session.query(cls)
-        query = query.filter(*cond)
+        query = query.filter(*cond).limit(limit).offset(offset)
         obj._q = query
         return obj
 
