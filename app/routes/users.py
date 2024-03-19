@@ -86,7 +86,7 @@ def is_email_valid(email: str) -> bool:
 
 
 async def is_email_exist(email: str) -> dict:
-    email_info = {"is_exist": False, "email": "", "password": ""}
+    email_info = {"is_exist": False, "member_no": None, "email": None, "password": None}
 
     get_email = Member.get(email=email)
 
