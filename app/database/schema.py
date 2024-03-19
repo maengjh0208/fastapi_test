@@ -8,6 +8,8 @@ from sqlalchemy import (
     Enum,
     Boolean,
     ForeignKey,
+    UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import Session, relationship
 
@@ -161,38 +163,44 @@ class BaseMixin:
 
 class Member(Base, BaseMixin):
     __tablename__ = "member"
-    member_no = Column(Integer, primary_key=True)
+    member_no = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     nickname = Column(String)
 
 
-# class Users(Base, BaseMixin):
-#     __tablename__ = "users"
-#     status = Column(Enum("active", "deleted", "blocked"), default="active")
-#     email = Column(String(length=255), nullable=True)
-#     pw = Column(String(length=2000), nullable=True)
-#     name = Column(String(length=255), nullable=True)
-#     phone_number = Column(String(length=20), nullable=True, unique=True)
-#     profile_img = Column(String(length=1000), nullable=True)
-#     sns_type = Column(Enum("FB", "G", "K"), nullable=True)
-#     marketing_agree = Column(Boolean, nullable=True, default=True)
-#     keys = relationship("ApiKeys", back_populates="users")
-#
-#
-# class ApiKeys(Base, BaseMixin):
-#     __tablename__ = "api_keys"
-#     access_key = Column(String(length=64), nullable=False, index=True)
-#     secret_key = Column(String(length=64), nullable=False)
-#     user_memo = Column(String(length=40), nullable=True)
-#     status = Column(Enum("active", "stopped", "deleted"), default="active")
-#     is_whitelisted = Column(Boolean, default=False)
-#     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-#     whitelist = relationship("ApiWhiteLists", backref="api_keys")
-#     users = relationship("Users", back_populates="keys")
-#
-#
-# class ApiWhiteLists(Base, BaseMixin):
-#     __tablename__ = "api_whitelists"
-#     ip_addr = Column(String(length=64), nullable=False)
-#     api_key_id = Column(Integer, ForeignKey("api_keys.id"), nullable=False)
+class BookmarkFolder(Base, BaseMixin):
+    __tablename__ = "bookmarkfolder"
+    folder_no = Column(Integer, primary_key=True, autoincrement=True)
+    member_no = Column(Integer, nullable=False)
+    folder_name = Column(String, nullable=False)
+
+    __table_args__ = (
+        Index('idx_memberno_folderno', 'member_no', 'folder_no'),
+    )
+
+    bookmarks = relationship("Bookmark", back_populates="bookmarkfolders")
+
+
+class Product(Base, BaseMixin):
+    __tablename__ = "product"
+    product_no = Column(Integer, primary_key=True, autoincrement=True)
+    product_name = Column(String, nullable=False)
+    thumbnail = Column(String, nullable=False)
+    price = Column(Integer, nullable=False)
+
+
+class Bookmark(Base, BaseMixin):
+    __tablename__ = "bookmark"
+    bookmark_no = Column(Integer, primary_key=True, autoincrement=True)
+    member_no = Column(Integer, nullable=False)
+    product_no = Column(Integer, nullable=False)
+    folder_no = Column(Integer, ForeignKey("bookmarkfolder.folder_no"), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('member_no', 'product_no', name='uidx_memberno_productno'),
+        Index('idx_memberno_folderno_2', 'member_no', 'folder_no'),
+    )
+
+    bookmarkfolders = relationship("BookmarkFolder", back_populates="bookmarks")
+
