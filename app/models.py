@@ -11,3 +11,8 @@ class UserRegister(BaseModel):
 
 class Token(BaseModel):
     Authorization: Optional[str] = None
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
