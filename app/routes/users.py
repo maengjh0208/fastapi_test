@@ -7,9 +7,10 @@ import jwt
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
+from starlette.requests import Request
 
 from app.database.schema import Member
-from app.models import UserRegister, Token, UserLogin
+from app.models import UserRegister, Token, UserLogin, UserInfo
 from app.database.conn import db
 from app.common.consts import JWT_SECRET, JWT_ALGORITHM, JWT_TOKEN_EXPIRE_MINUTES
 
@@ -72,9 +73,11 @@ async def login(login_info: UserLogin):
     return Token(Authorization=f"Bearer {token}")
 
 
-@router.get("/info", status_code=200)
-async def get_user_info():
-    return "hello"
+@router.get("/info", status_code=200, response_model=UserInfo)
+async def get_user_info(request: Request):
+    member_no = request.state.user.member_no
+    user_info = Member.get(member_no=member_no)
+    return UserInfo(email=user_info.email, nickname=user_info.nickname)
 
 
 def is_email_valid(email: str) -> bool:

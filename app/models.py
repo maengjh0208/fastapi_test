@@ -21,3 +21,8 @@ class UserLogin(BaseModel):
 class UserToken(BaseModel):
     member_no: int
     email: str
+
+
+class UserInfo(BaseModel):
+    email: str
+    nickname: Optional[str] = None
