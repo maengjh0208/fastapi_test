@@ -16,3 +16,8 @@ class Token(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+class UserToken(BaseModel):
+    member_no: int
+    email: str

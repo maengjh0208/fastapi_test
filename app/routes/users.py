@@ -38,10 +38,10 @@ async def signup(regist_info: UserRegister, session: Session = Depends(db.sessio
     hash_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
     # 유저 생성
-    Member.create(session, auto_commit=True, email=email, password=hash_password, nickname=nickname)
+    new_user = Member.create(session, auto_commit=True, email=email, password=hash_password, nickname=nickname)
 
     # 토큰 전달
-    token = create_access_token(data={"email": email})
+    token = create_access_token(data={"member_no": new_user.member_no, "email": email})
     return Token(Authorization=f"Bearer {token}")
 
 
@@ -68,8 +68,13 @@ async def login(login_info: UserLogin):
         return JSONResponse(status_code=400, content=dict(msg="password does not correct"))
 
     # 토큰 전달
-    token = create_access_token(data={"email": email})
+    token = create_access_token(data={"member_no": matching_email["member_no"], "email": email})
     return Token(Authorization=f"Bearer {token}")
+
+
+@router.get("/info", status_code=200)
+async def get_user_info():
+    return "hello"
 
 
 def is_email_valid(email: str) -> bool:
@@ -84,6 +89,7 @@ async def is_email_exist(email: str) -> dict:
 
     if get_email is not None:
         email_info["is_exist"] = True
+        email_info["member_no"] = get_email.member_no
         email_info["email"] = get_email.email
         email_info["password"] = get_email.password
 
