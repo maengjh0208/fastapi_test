@@ -176,10 +176,10 @@ class BookmarkFolder(Base, BaseMixin):
     folder_name = Column(String, nullable=False)
 
     __table_args__ = (
-        Index('idx_memberno_folderno', 'member_no', 'folder_no'),
+        UniqueConstraint('member_no', 'folder_name', name='uidx_memberno_foldername'),
     )
 
-    bookmarks = relationship("Bookmark", back_populates="bookmarkfolders")
+    bookmarks = relationship("Bookmark", back_populates="bookmark_folders")
 
 
 class Product(Base, BaseMixin):
@@ -202,5 +202,5 @@ class Bookmark(Base, BaseMixin):
         Index('idx_memberno_folderno_2', 'member_no', 'folder_no'),
     )
 
-    bookmarkfolders = relationship("BookmarkFolder", back_populates="bookmarks")
+    bookmark_folders = relationship("BookmarkFolder", back_populates="bookmarks")
 

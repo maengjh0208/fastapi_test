@@ -26,5 +26,8 @@ async def bookmark_folder(request: Request, folder_info: BookmarkFolderInfo, ses
     return NormalResponse(success=True, message="The bookmark folder has been successfully created")
 
 
+@router.get("/folders", status_code=200)
+async def get_bookmark_folders(request: Request):
+    member_no = request.state.user.member_no
 
 
