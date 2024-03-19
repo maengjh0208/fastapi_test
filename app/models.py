@@ -26,3 +26,12 @@ class UserToken(BaseModel):
 class UserInfo(BaseModel):
     email: str
     nickname: Optional[str] = None
+
+
+class BookmarkFolderInfo(BaseModel):
+    folder_name: str
+
+
+class NormalResponse(BaseModel):
+    success: bool
+    message: str

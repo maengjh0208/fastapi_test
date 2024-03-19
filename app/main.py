@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.database.conn import db
 from app.common.config import conf
 from app.middlewares.token_validator import access_control
-from app.routes import healthcheck, users
+from app.routes import healthcheck, users, bookmark
 
 API_KEY_HEADER = APIKeyHeader(name="Authorization", auto_error=False)
 
@@ -36,11 +36,11 @@ def create_app():
         allow_headers=["*"],
     )
 
-    # 라우터 정의
+    # 라우터 선언
     app.include_router(healthcheck.router, tags=["HealthCheck"])
     app.include_router(users.router, tags=["Users"])
-    # app.include_router(auth.router, tags=["Authentication"], prefix="/api")
-    # app.include_router(users.router, tags=["Users"], prefix="/api", dependencies=[Depends(API_KEY_HEADER)])
+    app.include_router(bookmark.router, tags=["Bookmark"])
+
     return app
 
 
