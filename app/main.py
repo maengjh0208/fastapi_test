@@ -12,7 +12,7 @@ from app.database.conn import db
 from app.common.config import conf
 # from app.middlewares.token_validator import access_control
 # from app.middlewares.trusted_hosts import TrustedHostMiddleware
-from app.routes import healthcheck
+from app.routes import healthcheck, users
 
 API_KEY_HEADER = APIKeyHeader(name="Authorization", auto_error=False)
 
@@ -41,7 +41,8 @@ def create_app():
     # app.add_middleware(TrustedHostMiddleware, allowed_hosts=conf().TRUSTED_HOSTS, except_path=["/health"])
 
     # 라우터 정의
-    app.include_router(healthcheck.router)
+    app.include_router(healthcheck.router, tags=["HealthCheck"])
+    app.include_router(users.router, tags=["Users"])
     # app.include_router(auth.router, tags=["Authentication"], prefix="/api")
     # app.include_router(users.router, tags=["Users"], prefix="/api", dependencies=[Depends(API_KEY_HEADER)])
     return app
@@ -50,4 +51,4 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=conf().DEBUG)

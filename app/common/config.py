@@ -13,8 +13,7 @@ class Config:
     BASE_DIR: str = base_dir
     DEBUG: bool = False
     DB_POOL_RECYCLE: int = 900
-    DB_ECHO: bool = True
-    DEBUG: bool = False
+    DB_ECHO: bool = False
     DB_URL: str = environ.get("DB_URL", "sqlite:///./sql_app.db")
 
 
@@ -23,6 +22,7 @@ class LocalConfig(Config):
     TRUSTED_HOSTS = ["*"]
     ALLOW_SITE = ["*"]
     DEBUG: bool = True
+    DB_ECHO: bool = True
 
 
 @dataclass
