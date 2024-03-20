@@ -1,7 +1,4 @@
-from dataclasses import asdict
-
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.database.conn import db
 from app.database.schema import Product, Bookmark
