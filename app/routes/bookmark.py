@@ -6,8 +6,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from app.database.conn import db
-from app.database.schema import BookmarkFolder
-from app.models import BookmarkFolderInfo, NormalResponse, BookmarkFolders
+from app.database.schema import BookmarkFolder, Bookmark, Product
+from app.models import BookmarkFolderInfo, NormalResponse, BookmarkFolders, BookmarkProduct
 
 router = APIRouter(prefix='/bookmark')
 
@@ -20,19 +20,19 @@ async def bookmark_folder(request: Request, folder_info: BookmarkFolderInfo, ses
     # 이미 존재하는 이름으로 생성 불가
     folder = BookmarkFolder.get(member_no=member_no, folder_name=folder_name)
     if folder:
-        return JSONResponse(status_code=400, content=dict(msg="user already has same folder_name"))
+        return JSONResponse(status_code=400, content=dict(msg="User already has same folder_name"))
 
     # 찜 폴더 생성
     BookmarkFolder.create(session, auto_commit=True, member_no=member_no, folder_name=folder_name)
 
-    return NormalResponse(success=True, message="The bookmark folder has been successfully created")
+    return NormalResponse(success=True, message="The bookmark folder was successfully created")
 
 
 @router.get("/folder", status_code=200, response_model=List[BookmarkFolders])
 async def get_bookmark_folders(
     request: Request,
-    limit: int = Query(default=100),
-    offset: int = Query(default=0),
+    limit: int = Query(default=100, title="제한 개수"),
+    offset: int = Query(default=0, title="시작 개수"),
 ):
     member_no = request.state.user.member_no
     folders = BookmarkFolder.filter(member_no=member_no, limit=limit, offset=offset).all()
@@ -44,3 +44,31 @@ async def get_bookmark_folders(
     return response
 
 
+@router.post("/product", status_code=200, response_model=NormalResponse)
+async def bookmark_product(
+    request: Request, bookmark_info: BookmarkProduct, session: Session = Depends(db.session)
+):
+    member_no = request.state.user.member_no
+    product_no = bookmark_info.product_no
+    folder_no = bookmark_info.folder_no
+
+    # 상품 존재 여부 확인
+    if Product.get(product_no=product_no) is None:
+        return JSONResponse(status_code=400, content=dict(msg=f"The product does not exist"))
+
+    # 이미 찜한 상품 인지 확인
+    bookmark = Bookmark.get(member_no=member_no, product_no=product_no)
+    if bookmark is not None:
+        return JSONResponse(
+            status_code=400,
+            content=dict(msg=f"The product is already bookmarkded | folder_no: {bookmark.folder_no}")
+        )
+
+    # 해당 찜 서랍 존재 여부 확인 (잘못된 찜 서랍 가져왔는지 여부도 더블 체크됨)
+    if BookmarkFolder.get(folder_no=folder_no, member_no=member_no) is None:
+        return JSONResponse(status_code=400, content=dict(msg=f"The folder does not exist"))
+
+    # 상품 찜 생성
+    Bookmark.create(session, auto_commit=True, member_no=member_no, product_no=product_no, folder_no=folder_no)
+
+    return NormalResponse(success=True, message="The bookmark was successfully created")
