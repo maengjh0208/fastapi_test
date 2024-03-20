@@ -57,7 +57,7 @@ async def get_bookmark_products(
     member_no = request.state.user.member_no
     paging_params = {"limit": limit, "offset": offset}
 
-    # 해당 찜 폴더 존재 여부 확인 & 해당 회원의 찜 폴더 여부도 확인
+    # 해당 찜 폴더 존재 여부 확인
     if BookmarkFolder.get(member_no=member_no, folder_no=folder_no) is None:
         return JSONResponse(status_code=400, content=dict(msg="The folder does not exist"))
 
@@ -76,6 +76,31 @@ async def get_bookmark_products(
             price=product["price"],
         ) for product in products
     ]
+
+
+@router.delete("/folder/{folder_no}", status_code=200, response_model=NormalResponse)
+async def delete_bookmark_folder(
+    request: Request,
+    folder_no: int = Path(..., title="찜 폴더 번호"),
+    session: Session = Depends(db.session)
+):
+    member_no = request.state.user.member_no
+
+    # 해당 찜 폴더 존재 여부 확인
+    if BookmarkFolder.get(member_no=member_no, folder_no=folder_no) is None:
+        return JSONResponse(status_code=400, content=dict(msg="The folder does not exist"))
+
+    # 해당 찜 폴더에 찜 상품 존재 여부 확인
+    is_bookmark_product = Bookmark.filter(member_no=member_no, folder_no=folder_no).count() > 0
+
+    # 찜 폴더 삭제
+    BookmarkFolder.filter(session, folder_no=folder_no).delete(auto_commit=False)
+
+    # 찜 상품 삭제
+    if is_bookmark_product:
+        Bookmark.filter(session, member_no=member_no, folder_no=folder_no).delete(auto_commit=True)
+
+    return NormalResponse(success=True, message="The bookmark folder & bookmark product were successfully deleted")
 
 
 @router.post("/product", status_code=200, response_model=NormalResponse)
@@ -114,7 +139,7 @@ async def delete_bookmark_product(
 ):
     member_no = request.state.user.member_no
 
-    # 찜한 상품인지 확인
+    # 찜한 상품 인지 확인
     bookmark = Bookmark.get(member_no=member_no, product_no=product_no)
     if bookmark is None:
         return JSONResponse(status_code=400, content=dict(msg=f"The product does not exist in the bookmark folder"))

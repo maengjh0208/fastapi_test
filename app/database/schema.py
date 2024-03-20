@@ -182,7 +182,7 @@ class BookmarkFolder(Base, BaseMixin):
         UniqueConstraint('member_no', 'folder_name', name='uidx_memberno_foldername'),
     )
 
-    bookmarks = relationship("Bookmark", back_populates="bookmark_folders")
+    bookmarks = relationship("Bookmark", cascade="all, delete", back_populates="bookmark_folders")
 
 
 class Product(Base, BaseMixin):
