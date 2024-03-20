@@ -69,29 +69,19 @@ class BaseMixin:
         return result
 
     @classmethod
-    def filter(cls, session: Session = None, **kwargs):
+    def filter(cls, session: Session = None, paging_params: dict = None, **kwargs):
         """
         Simply get a Row
+        :param paging_params:
         :param session:
         :param kwargs:
         :return:
         """
-        limit = 100
-        offset = 0
-
         cond = []
         for key, val in kwargs.items():
             key = key.split("__")
             if len(key) > 2:
                 raise Exception("No 2 more dunders")
-
-            if key[0] == "limit":
-                limit = min(limit, val) if val is not None else limit
-                continue
-            elif key[0] == "offset":
-                offset = max(offset, val) if val is not None else offset
-                continue
-
             col = getattr(cls, key[0])
             if len(key) == 1: cond.append((col == val))
             elif len(key) == 2 and key[1] == 'gt': cond.append((col > val))
@@ -107,7 +97,14 @@ class BaseMixin:
             obj._session = next(db.session())
             obj.served = False
         query = obj._session.query(cls)
-        query = query.filter(*cond).limit(limit).offset(offset)
+
+        if paging_params:
+            limit = paging_params.get("limit", 100)
+            offset = paging_params.get("offset", 0)
+            query = query.filter(*cond).limit(limit).offset(offset)
+        else:
+            query = query.filter(*cond)
+
         obj._q = query
         return obj
 

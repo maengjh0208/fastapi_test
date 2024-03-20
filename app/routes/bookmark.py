@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -35,7 +35,9 @@ async def get_bookmark_folders(
     offset: int = Query(default=0, title="시작 개수"),
 ):
     member_no = request.state.user.member_no
-    folders = BookmarkFolder.filter(member_no=member_no, limit=limit, offset=offset).all()
+    paging_params = {"limit": limit, "offset": offset}
+
+    folders = BookmarkFolder.filter(None, paging_params, member_no=member_no).all()
 
     response = []
     for folder in folders:
@@ -72,3 +74,21 @@ async def bookmark_product(
     Bookmark.create(session, auto_commit=True, member_no=member_no, product_no=product_no, folder_no=folder_no)
 
     return NormalResponse(success=True, message="The bookmark was successfully created")
+
+
+@router.delete("/product/{product_no}", status_code=200, response_model=NormalResponse)
+async def delete_bookmark_product(
+    request: Request, product_no: int = Path(title="상품 번호")
+):
+    member_no = request.state.user.member_no
+
+    # 찜한 상품인지 확인
+    bookmark = Bookmark.get(member_no=member_no, product_no=product_no)
+    if bookmark is None:
+        return JSONResponse(status_code=400, content=dict(msg=f"The product does not exist in the bookmark folder"))
+
+    # 상품 찜 삭제
+    Bookmark.filter(bookmark_no=bookmark.bookmark_no).delete(auto_commit=True)
+
+    return NormalResponse(success=True, message="The bookmark was successfully deleted")
+
