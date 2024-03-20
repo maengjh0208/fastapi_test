@@ -17,7 +17,7 @@ from app.common.consts import JWT_SECRET, JWT_ALGORITHM, JWT_TOKEN_EXPIRE_MINUTE
 router = APIRouter(prefix='/users')
 
 
-@router.post("/signup", status_code=200, response_model=Token)
+@router.post("/signup", status_code=200)
 async def signup(regist_info: UserRegister, session: Session = Depends(db.session)):
     # 회원가입시 전달받는 변수
     email = regist_info.email.strip()
@@ -39,11 +39,8 @@ async def signup(regist_info: UserRegister, session: Session = Depends(db.sessio
     hash_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
     # 유저 생성
-    new_user = Member.create(session, auto_commit=True, email=email, password=hash_password, nickname=nickname)
-
-    # 토큰 전달
-    token = create_access_token(data={"member_no": new_user.member_no, "email": email})
-    return Token(Authorization=f"Bearer {token}")
+    Member.create(session, auto_commit=True, email=email, password=hash_password, nickname=nickname)
+    return JSONResponse(status_code=200, content=dict(msg="signup was successfully created"))
 
 
 @router.post("/login", status_code=200, response_model=Token)

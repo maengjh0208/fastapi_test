@@ -7,13 +7,13 @@ from starlette.responses import JSONResponse
 
 from app.database.conn import db
 from app.database.schema import BookmarkFolder, Bookmark, Product
-from app.models import BookmarkFolderInfo, NormalResponse, BookmarkFolders, BookmarkProduct, ProductInfo
+from app.models import BookmarkFolderInfo, BookmarkFolders, BookmarkProduct, ProductInfo
 from app.database import models as sql_model
 
 router = APIRouter(prefix='/bookmark')
 
 
-@router.post("/folder", status_code=200, response_model=NormalResponse)
+@router.post("/folder", status_code=200)
 async def bookmark_folder(request: Request, folder_info: BookmarkFolderInfo, session: Session = Depends(db.session)):
     member_no = request.state.user.member_no
     folder_name = folder_info.folder_name.strip()[:10]  # 편의상 찜 서랍 이름은 10 자리까지만 허용하기로
@@ -25,8 +25,7 @@ async def bookmark_folder(request: Request, folder_info: BookmarkFolderInfo, ses
 
     # 찜 폴더 생성
     BookmarkFolder.create(session, auto_commit=True, member_no=member_no, folder_name=folder_name)
-
-    return NormalResponse(success=True, message="The bookmark folder was successfully created")
+    return JSONResponse(status_code=200, content=dict(msg="The bookmark folder was successfully created"))
 
 
 @router.get("/folder", status_code=200, response_model=List[BookmarkFolders])
@@ -78,7 +77,7 @@ async def get_bookmark_products(
     ]
 
 
-@router.delete("/folder/{folder_no}", status_code=200, response_model=NormalResponse)
+@router.delete("/folder/{folder_no}", status_code=200)
 async def delete_bookmark_folder(
     request: Request,
     folder_no: int = Path(..., title="찜 폴더 번호"),
@@ -93,17 +92,20 @@ async def delete_bookmark_folder(
     # 해당 찜 폴더에 찜 상품 존재 여부 확인
     is_bookmark_product = Bookmark.filter(member_no=member_no, folder_no=folder_no).count() > 0
 
-    # 찜 폴더 삭제
-    BookmarkFolder.filter(session, folder_no=folder_no).delete(auto_commit=False)
-
-    # 찜 상품 삭제
+    # 찜 폴더 & 찜 상품 삭제
     if is_bookmark_product:
+        BookmarkFolder.filter(session, folder_no=folder_no).delete(auto_commit=False)
         Bookmark.filter(session, member_no=member_no, folder_no=folder_no).delete(auto_commit=True)
+    else:
+        BookmarkFolder.filter(session, folder_no=folder_no).delete(auto_commit=True)
 
-    return NormalResponse(success=True, message="The bookmark folder & bookmark product were successfully deleted")
+    return JSONResponse(
+        status_code=400,
+        content=dict(msg="The bookmark folder & bookmark product were successfully deleted")
+    )
 
 
-@router.post("/product", status_code=200, response_model=NormalResponse)
+@router.post("/product", status_code=200)
 async def bookmark_product(
     request: Request, bookmark_info: BookmarkProduct, session: Session = Depends(db.session)
 ):
@@ -115,6 +117,10 @@ async def bookmark_product(
     if Product.get(product_no=product_no) is None:
         return JSONResponse(status_code=400, content=dict(msg=f"The product does not exist"))
 
+    # 해당 찜 서랍 존재 여부 확인
+    if BookmarkFolder.get(folder_no=folder_no, member_no=member_no) is None:
+        return JSONResponse(status_code=400, content=dict(msg=f"The folder does not exist"))
+
     # 이미 찜한 상품 인지 확인
     bookmark = Bookmark.get(member_no=member_no, product_no=product_no)
     if bookmark is not None:
@@ -123,17 +129,12 @@ async def bookmark_product(
             content=dict(msg=f"The product is already bookmarkded | folder_no: {bookmark.folder_no}")
         )
 
-    # 해당 찜 서랍 존재 여부 확인 (잘못된 찜 서랍 가져왔는지 여부도 더블 체크됨)
-    if BookmarkFolder.get(folder_no=folder_no, member_no=member_no) is None:
-        return JSONResponse(status_code=400, content=dict(msg=f"The folder does not exist"))
-
     # 상품 찜 생성
     Bookmark.create(session, auto_commit=True, member_no=member_no, product_no=product_no, folder_no=folder_no)
+    return JSONResponse(status_code=400, content=dict(msg=f"The bookmark was successfully created"))
 
-    return NormalResponse(success=True, message="The bookmark was successfully created")
 
-
-@router.delete("/product/{product_no}", status_code=200, response_model=NormalResponse)
+@router.delete("/product/{product_no}", status_code=200)
 async def delete_bookmark_product(
     request: Request, product_no: int = Path(..., title="상품 번호")
 ):
@@ -142,10 +143,9 @@ async def delete_bookmark_product(
     # 찜한 상품 인지 확인
     bookmark = Bookmark.get(member_no=member_no, product_no=product_no)
     if bookmark is None:
-        return JSONResponse(status_code=400, content=dict(msg=f"The product does not exist in the bookmark folder"))
+        return JSONResponse(status_code=400, content=dict(msg=f"The product is not bookmarked"))
 
     # 상품 찜 삭제
     Bookmark.filter(bookmark_no=bookmark.bookmark_no).delete(auto_commit=True)
-
-    return NormalResponse(success=True, message="The bookmark was successfully deleted")
+    return JSONResponse(status_code=400, content=dict(msg=f"The bookmark was successfully deleted"))
 

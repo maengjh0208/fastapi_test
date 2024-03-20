@@ -36,11 +36,6 @@ class BookmarkFolders(BookmarkFolderInfo):
     folder_no: int
 
 
-class NormalResponse(BaseModel):
-    success: bool
-    message: str
-
-
 class BookmarkProduct(BaseModel):
     product_no: int
     folder_no: int
