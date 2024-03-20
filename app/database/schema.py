@@ -86,11 +86,10 @@ class BaseMixin:
                 raise Exception("No 2 more dunders")
 
             if key[0] == "limit":
-                val = min(val, 1)
-                limit = min(limit, val)
+                limit = min(limit, val) if val is not None else limit
                 continue
             elif key[0] == "offset":
-                offset = max(offset, val)
+                offset = max(offset, val) if val is not None else offset
                 continue
 
             col = getattr(cls, key[0])
