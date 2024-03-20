@@ -7,7 +7,8 @@ from starlette.responses import JSONResponse
 
 from app.database.conn import db
 from app.database.schema import BookmarkFolder, Bookmark, Product
-from app.models import BookmarkFolderInfo, NormalResponse, BookmarkFolders, BookmarkProduct
+from app.models import BookmarkFolderInfo, NormalResponse, BookmarkFolders, BookmarkProduct, ProductInfo
+from app.database import models as sql_model
 
 router = APIRouter(prefix='/bookmark')
 
@@ -46,6 +47,37 @@ async def get_bookmark_folders(
     return response
 
 
+@router.get("/folder/{folder_no}", status_code=200, response_model=list[ProductInfo])
+async def get_bookmark_products(
+    request: Request,
+    folder_no: int = Path(..., title="찜 폴더 번호"),
+    limit: int = Query(100, title="제한 개수"),
+    offset: int = Query(0, title="시작 개수"),
+):
+    member_no = request.state.user.member_no
+    paging_params = {"limit": limit, "offset": offset}
+
+    # 해당 찜 폴더 존재 여부 확인 & 해당 회원의 찜 폴더 여부도 확인
+    if BookmarkFolder.get(member_no=member_no, folder_no=folder_no) is None:
+        return JSONResponse(status_code=400, content=dict(msg="The folder does not exist"))
+
+    # 해당 찜 폴더 내 상품 목록 조회
+    products = await sql_model.get_bookmark_products(
+        member_no=member_no,
+        folder_no=folder_no,
+        paging_params=paging_params
+    )
+
+    return [
+        ProductInfo(
+            product_no=product["product_no"],
+            product_name=product["product_name"],
+            thumbnail=product["thumbnail"],
+            price=product["price"],
+        ) for product in products
+    ]
+
+
 @router.post("/product", status_code=200, response_model=NormalResponse)
 async def bookmark_product(
     request: Request, bookmark_info: BookmarkProduct, session: Session = Depends(db.session)
@@ -78,7 +110,7 @@ async def bookmark_product(
 
 @router.delete("/product/{product_no}", status_code=200, response_model=NormalResponse)
 async def delete_bookmark_product(
-    request: Request, product_no: int = Path(title="상품 번호")
+    request: Request, product_no: int = Path(..., title="상품 번호")
 ):
     member_no = request.state.user.member_no
 

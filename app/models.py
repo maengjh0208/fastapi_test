@@ -45,3 +45,10 @@ class BookmarkProduct(BaseModel):
     product_no: int
     folder_no: int
 
+
+class ProductInfo(BaseModel):
+    product_no: int
+    product_name: str
+    thumbnail: str
+    price: int
+
