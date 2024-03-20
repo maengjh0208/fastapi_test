@@ -1,5 +1,5 @@
-import time
 import re
+import time
 
 import jwt
 import sqlalchemy.exc
@@ -69,6 +69,10 @@ async def token_decode(access_token):
     try:
         access_token = access_token.replace("Bearer ", "")
         payload = jwt.decode(access_token, key=JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        if payload["exp"] < time.time():
+            raise ex.TokenExpiredEx()
+
     except ExpiredSignatureError:
         raise ex.TokenExpiredEx()
     except DecodeError:
